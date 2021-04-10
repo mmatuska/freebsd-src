@@ -29,6 +29,7 @@
 #include_next <sys/stat.h>
 
 /* Note: this file can be used on linux/macOS when bootstrapping tools. */
+
 #if defined(__FreeBSD__)
 #include <sys/mount.h> /* for BLKGETSIZE64 */
 

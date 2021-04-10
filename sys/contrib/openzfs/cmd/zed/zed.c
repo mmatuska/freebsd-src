@@ -60,8 +60,8 @@ _setup_sig_handlers(void)
 		zed_log_die("Failed to initialize sigset");
 
 	sa.sa_flags = SA_RESTART;
-	sa.sa_handler = SIG_IGN;
 
+	sa.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &sa, NULL) < 0)
 		zed_log_die("Failed to ignore SIGPIPE");
 
@@ -75,6 +75,10 @@ _setup_sig_handlers(void)
 	sa.sa_handler = _hup_handler;
 	if (sigaction(SIGHUP, &sa, NULL) < 0)
 		zed_log_die("Failed to register SIGHUP handler");
+
+	(void) sigaddset(&sa.sa_mask, SIGCHLD);
+	if (pthread_sigmask(SIG_BLOCK, &sa.sa_mask, NULL) < 0)
+		zed_log_die("Failed to block SIGCHLD");
 }
 
 /*
@@ -225,8 +229,6 @@ main(int argc, char *argv[])
 
 	if (geteuid() != 0)
 		zed_log_die("Must be run as root");
-
-	zed_conf_parse_file(zcp);
 
 	zed_file_close_from(STDERR_FILENO + 1);
 

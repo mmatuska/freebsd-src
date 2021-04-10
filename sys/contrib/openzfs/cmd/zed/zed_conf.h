@@ -29,7 +29,6 @@ struct zed_conf {
 	int		syslog_facility;	/* syslog facility value */
 	int		min_events;		/* RESERVED FOR FUTURE USE */
 	int		max_events;		/* RESERVED FOR FUTURE USE */
-	char		*conf_file;		/* abs path to config file */
 	char		*pid_file;		/* abs path to pid file */
 	int		pid_fd;			/* fd to pid file for lock */
 	char		*zedlet_dir;		/* abs path to zedlet dir */
@@ -39,6 +38,7 @@ struct zed_conf {
 	libzfs_handle_t	*zfs_hdl;		/* handle to libzfs */
 	int		zevent_fd;		/* fd for access to zevents */
 	char		*path;		/* custom $PATH for zedlets to use */
+	int16_t max_jobs;		/* max zedlets to run at one time */
 };
 
 struct zed_conf *zed_conf_create(void);
@@ -46,8 +46,6 @@ struct zed_conf *zed_conf_create(void);
 void zed_conf_destroy(struct zed_conf *zcp);
 
 void zed_conf_parse_opts(struct zed_conf *zcp, int argc, char **argv);
-
-void zed_conf_parse_file(struct zed_conf *zcp);
 
 int zed_conf_scan_dir(struct zed_conf *zcp);
 

@@ -51,9 +51,7 @@ zed_conf_create(void)
 	zcp->state_fd = -1;		/* opened via zed_conf_open_state() */
 	zcp->zfs_hdl = NULL;		/* opened via zed_event_init() */
 	zcp->zevent_fd = -1;		/* opened via zed_event_init() */
-
-	if (!(zcp->conf_file = strdup(ZED_CONF_FILE)))
-		goto nomem;
+	zcp->max_jobs = 16;
 
 	if (!(zcp->pid_file = strdup(ZED_PID_FILE)))
 		goto nomem;
@@ -101,10 +99,6 @@ zed_conf_destroy(struct zed_conf *zcp)
 			    "Failed to close PID file \"%s\": %s",
 			    zcp->pid_file, strerror(errno));
 		zcp->pid_fd = -1;
-	}
-	if (zcp->conf_file) {
-		free(zcp->conf_file);
-		zcp->conf_file = NULL;
 	}
 	if (zcp->pid_file) {
 		free(zcp->pid_file);
@@ -162,16 +156,14 @@ _zed_conf_display_help(const char *prog, int got_err)
 	fprintf(fp, "%*c%*s %s\n", w1, 0x20, -w2, "-Z",
 	    "Zero state file.");
 	fprintf(fp, "\n");
-#if 0
-	fprintf(fp, "%*c%*s %s [%s]\n", w1, 0x20, -w2, "-c FILE",
-	    "Read configuration from FILE.", ZED_CONF_FILE);
-#endif
 	fprintf(fp, "%*c%*s %s [%s]\n", w1, 0x20, -w2, "-d DIR",
 	    "Read enabled ZEDLETs from DIR.", ZED_ZEDLET_DIR);
 	fprintf(fp, "%*c%*s %s [%s]\n", w1, 0x20, -w2, "-p FILE",
 	    "Write daemon's PID to FILE.", ZED_PID_FILE);
 	fprintf(fp, "%*c%*s %s [%s]\n", w1, 0x20, -w2, "-s FILE",
 	    "Write daemon's state to FILE.", ZED_STATE_FILE);
+	fprintf(fp, "%*c%*s %s [%d]\n", w1, 0x20, -w2, "-j JOBS",
+	    "Start at most JOBS at once.", 16);
 	fprintf(fp, "\n");
 
 	exit(got_err ? EXIT_FAILURE : EXIT_SUCCESS);
@@ -251,8 +243,9 @@ _zed_conf_parse_path(char **resultp, const char *path)
 void
 zed_conf_parse_opts(struct zed_conf *zcp, int argc, char **argv)
 {
-	const char * const opts = ":hLVc:d:p:P:s:vfFMZI";
+	const char * const opts = ":hLVd:p:P:s:vfFMZIj:";
 	int opt;
+	unsigned long raw;
 
 	if (!zcp || !argv || !argv[0])
 		zed_log_die("Failed to parse options: Internal error");
@@ -269,9 +262,6 @@ zed_conf_parse_opts(struct zed_conf *zcp, int argc, char **argv)
 			break;
 		case 'V':
 			_zed_conf_display_version();
-			break;
-		case 'c':
-			_zed_conf_parse_path(&zcp->conf_file, optarg);
 			break;
 		case 'd':
 			_zed_conf_parse_path(&zcp->zedlet_dir, optarg);
@@ -303,6 +293,17 @@ zed_conf_parse_opts(struct zed_conf *zcp, int argc, char **argv)
 		case 'Z':
 			zcp->do_zero = 1;
 			break;
+		case 'j':
+			errno = 0;
+			raw = strtoul(optarg, NULL, 0);
+			if (errno == ERANGE || raw > INT16_MAX) {
+				zed_log_die("%lu is too many jobs", raw);
+			} if (raw == 0) {
+				zed_log_die("0 jobs makes no sense");
+			} else {
+				zcp->max_jobs = raw;
+			}
+			break;
 		case '?':
 		default:
 			if (optopt == '?')
@@ -317,26 +318,12 @@ zed_conf_parse_opts(struct zed_conf *zcp, int argc, char **argv)
 }
 
 /*
- * Parse the configuration file into the configuration [zcp].
- *
- * FIXME: Not yet implemented.
- */
-void
-zed_conf_parse_file(struct zed_conf *zcp)
-{
-	if (!zcp)
-		zed_log_die("Failed to parse config: %s", strerror(EINVAL));
-}
-
-/*
  * Scan the [zcp] zedlet_dir for files to exec based on the event class.
  * Files must be executable by user, but not writable by group or other.
  * Dotfiles are ignored.
  *
  * Return 0 on success with an updated set of zedlets,
  * or -1 on error with errno set.
- *
- * FIXME: Check if zedlet_dir and all parent dirs are secure.
  */
 int
 zed_conf_scan_dir(struct zed_conf *zcp)
@@ -528,7 +515,7 @@ zed_conf_write_pid(struct zed_conf *zcp)
 		errno = ERANGE;
 		zed_log_msg(LOG_ERR, "Failed to write PID file \"%s\": %s",
 		    zcp->pid_file, strerror(errno));
-	} else if (zed_file_write_n(zcp->pid_fd, buf, n) != n) {
+	} else if (write(zcp->pid_fd, buf, n) != n) {
 		zed_log_msg(LOG_ERR, "Failed to write PID file \"%s\": %s",
 		    zcp->pid_file, strerror(errno));
 	} else if (fdatasync(zcp->pid_fd) < 0) {

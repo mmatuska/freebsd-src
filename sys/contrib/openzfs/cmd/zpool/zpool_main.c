@@ -1065,7 +1065,7 @@ zpool_do_add(int argc, char **argv)
 				free(vname);
 			}
 		}
-		/* And finaly the spares */
+		/* And finally the spares */
 		if (nvlist_lookup_nvlist_array(poolnvroot, ZPOOL_CONFIG_SPARES,
 		    &sparechild, &sparechildren) == 0 && sparechildren > 0) {
 			hadspare = B_TRUE;
@@ -4965,8 +4965,8 @@ get_interval_count(int *argcp, char **argv, float *iv,
 
 		if (*end == '\0' && errno == 0) {
 			if (interval == 0) {
-				(void) fprintf(stderr, gettext("interval "
-				    "cannot be zero\n"));
+				(void) fprintf(stderr, gettext(
+				    "interval cannot be zero\n"));
 				usage(B_FALSE);
 			}
 			/*
@@ -4996,8 +4996,8 @@ get_interval_count(int *argcp, char **argv, float *iv,
 
 		if (*end == '\0' && errno == 0) {
 			if (interval == 0) {
-				(void) fprintf(stderr, gettext("interval "
-				    "cannot be zero\n"));
+				(void) fprintf(stderr, gettext(
+				    "interval cannot be zero\n"));
 				usage(B_FALSE);
 			}
 
