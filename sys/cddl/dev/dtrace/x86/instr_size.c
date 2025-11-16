@@ -29,6 +29,7 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/_mutex.h>
 #include <sys/proc.h>
 #ifdef illumos
 #include <sys/cmn_err.h>
