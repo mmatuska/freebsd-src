@@ -19,6 +19,7 @@ SRCS+= nvpair_alloc_fixed.c \
 	fnvpair.c
 
 WARNS?=	2
+SHLIB_MAJOR= 3
 CFLAGS+= -DIN_BASE -DHAVE_RPC_TYPES
 CFLAGS+= -I${SRCTOP}/sys/contrib/openzfs/include
 CFLAGS+= -I${SRCTOP}/sys/contrib/openzfs/lib/libspl/include/
